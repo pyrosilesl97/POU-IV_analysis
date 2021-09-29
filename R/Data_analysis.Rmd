@@ -326,6 +326,51 @@ Using the above code, we should produce a figure like the following one
 
 ![TreeMap of representative GO terms in downregulated genes](../example_images/img1.png)
 
+# ChIP-seq analysis 
+
+ChIP-seq technique was used to obtain target gene sequences of the transcription factor POU-IV. We used Macs2 software to perform the peak calling of the reads. 
+```{bash,eval=FALSE}
+macs2 callpeak -t data/[ChIPseq_rep1] -c data/[ChIPseq_rep1_input] -f BAMPE -g 361523379 -n cp -B
+```
+
+Then we used "Multiple Sample Peak Calling (MSPC)" to improve sensitivity and specificity of peak calling, and identify consensus regions of multiple peaks (Jalili, **et al**., 2015). Setting the p-value threeshold to 1e-8 we obtained 5,015 consensus peaks using the following code 
+```{bash,eval=FALSE}
+# Code used to obtain consensus peaks. 
+[path_to_mspc]/mspc -i data/*.narrowPeak -r tec -w 1e-4 -s 1e-8 -o ./MSPC_outdir
+```
+
+Subsequently, bedtools get fasta was used to obtain the fasta sequences to be analyzed in Rsat. For this we use the following code. 
+```{bash,eval=FALSE}
+bedtools getfasta -fi ../ref_genomes/Nvectensis.fa -bed MSPC_outdir/ConsensusPeaks.bed -fo consensus_peaks_sequence
+```
+
+This file can be uploaded in http://rsat.sb-roscoff.fr/peak-motifs_form.cgi with the option local-word-analysis in motif discovery parameters. The results were downloaded and uploaded to Tomtom against the Jaspar database.
+
+Results can be found in the following table 
+
+|Motif|Number of peaks with at least one predicted site |Mean of predicted sites per peak| Jaspar non-redundant database hits wit cor value|E-value|
+|:--------------------|:----|:----|:--------|:----|
+|![](../example_images/motifs_all_1.png)|724 (5.58%)| 1.23| -POU4F3 (0.845	) <br /> -POU4F2 (0.779)<br /> -POU4F1 (0.870) |5.2e-75|
+|![](../example_images/motif_all_2.png)|429 (3.31%)| 2.16| -POU4F3 (0.818) <br /> -POU4F1 (0.829)<br /> -POU4F2 (0.734) |1.2e-52|
+|![](../example_images/motif_all_3.png)|1892 (14.54%)| 1.60| -POU4F3 (0.840) <br /> -POU4F1 (0.736)<br /> -POU4F2 (0.842) |4.8e-36|
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 # SYSTEM INFORMATION
 
 The system information used to run this analysis.
