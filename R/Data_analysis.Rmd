@@ -112,7 +112,15 @@ The html files, will be located in quality_files/after_trim
 
 
 ### ChIP-seq data
-We use ChipQC in R
+We use phantompeakqualtools, to install it, go to https://github.com/kundajelab/phantompeakqualtools
+We run in terminal
+```{bash,eval=F}
+#$
+Rscript [/path_to_spp_script]run_spp.R -c=[ChIPseq_rep1] -savp -out=[ChIPseq_rep1.outphantom]
+#$
+```
+
+Alternatively we can use ChipQC in R
 
 You can install it, using 
 ```{r,eval=FALSE}
@@ -120,11 +128,11 @@ BiocManager::install("ChIPQC")
 ```
 
 And then, we can run 
-```{r}
+```{r, eval=FALSE}
 library(ChIPQC)
-sample1 = ChIPQCsample('../data/[]')
-sample2 = ChIPQCsample('../data/[]')
-sample3 = ChIPQCsample('../data/[]')
+sample1 = ChIPQCsample('../data/[ChIPseq_rep1]')
+sample2 = ChIPQCsample('../data/[ChIPseq_rep2]')
+sample3 = ChIPQCsample('../data/[ChIPseq_rep3]')
 
 # Report from sample 1
 ChIPQCreport(sample1)
