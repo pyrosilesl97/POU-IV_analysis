@@ -155,6 +155,14 @@ resLFC <- lfcShrink(dds, coef=2, type="apeglm")
 plotMA(resLFC, ylim=c(-4,4))
 
 
+## ---- message=FALSE-----------------------------------------------------------------------------
+library(reshape)
+library(SummarizedExperiment)
+vst <- varianceStabilizingTransformation(dds)
+vst@colData@listData[["condition"]] <- c("POU_ko","POU_ko","POU_ko","POU_ko","POU_wt","POU_wt","POU_wt","POU_wt")
+plotPCA(vst, intgroup = "condition")
+
+
 ## -----------------------------------------------------------------------------------------------
 #Para 0.05
 nrow(data.frame(resLFC@rownames[resLFC@listData[["pvalue"]] <0.05]))
@@ -318,7 +326,7 @@ genes_with_peaks <- genes_with_peaks[!duplicated(genes_with_peaks),]
 print('We have 3867 genes with peaks on the promoter region')
 
 
-## -----------------------------------------------------------------------------------------------
+## ----warning=FALSE------------------------------------------------------------------------------
 library(dplyr)
 ###########Peaks on differentially expressed genes ########
 differential_genes_with_peaks_on_genes <-differential_genes[differential_genes$gene%in%genes_with_peaks$V11,]
