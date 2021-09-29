@@ -1,0 +1,194 @@
+---
+title: Cnidarian hair cell development illuminates an ancient role for the class IV
+  POU transcription factor in defining mechanoreceptor identity
+author: "Pablo Yamild Rosiles Loeza"
+date: "9/27/2021"
+output: html_document
+---
+
+
+### NOTES: 
+
++ Within the code, there are square brackets in square brackets those paths that must be modified by the user for its use.
+
++ The lines of code marked with a @ between the lines must be run repeatedly for each sample. 
+
+# DOWNLOAD DATA
+
+### Reference genome data 
+To initiate the analysis, we required to process the RNA-seq data from Tournière, et al. (2020).
+To achieve this, reference genomic data must be downloaded.
+
+To download the complete fasta file of the sequence genome. Run in terminal
+```{bash, eval=F}
+wget ftp://ftp.ensemblgenomes.org/pub/metazoa/release-51/fasta/nematostella_vectensis/dna/Nematostella_vectensis.ASM20922v1.dna.toplevel.fa.gz
+```
+
+To download all annotation files, please go to https://doi.org/https://doi.org/10.6084/m9.figshare.807696.v2 
+Or run in terminal
+
+```{bash, eval=F}
+wget https://figshare.com/ndownloader/articles/807696/versions/2
+unzip 2
+```
+
+In order to run this script, you can clone the repository from Github. The annotation data downloaded in the previous step should be located in the folder ref_genomes
+
+
+### RNA-seq data 
+
+To download all files interactively, go to https://www.ebi.ac.uk/arrayexpress/experiments/E-MTAB-8658/ Or run in terminal
+```{bash, eval=F}
+cd data
+# POU mutants data
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/003/ERR3809533/ERR3809533.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/002/ERR3809532/ERR3809532.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/004/ERR3809534/ERR3809534.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/005/ERR3809535/ERR3809535.fastq.gz
+
+# POU wild type data
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/006/ERR3809536/ERR3809536.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/007/ERR3809537/ERR3809537.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/008/ERR3809538/ERR3809538.fastq.gz
+wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/009/ERR3809539/ERR3809539.fastq.gz
+
+```
+
+
+To uncompress the file, run 
+```{bash,eval=F}
+gzip *.fastq.gz
+#Then we move the files
+mv *.fastq /before_trim
+```
+
+These data downloaded should be located in data/before_trim folder
+
+### ChIP-seq data
+
+Go to [link] Or run in terminal
+```{bash,eval=F}
+ wget [link]
+```
+
+
+# DATA QUALITY
+
+### RNA-seq data
+
+For RNA-seq data, we use fastqc, in terminal run
+```{bash, eval=F}
+fastqc -O quality_files/before_trim data/*fastq
+
+```
+
+The html files, will be located in quality_files/before_trim
+
+Since k-mer content, sequence duplication levels and overrepresented sequences may fail due to adaptor content or poor sequence quality, we used the Trimmomatic tool to process the datasets.
+For this, we download illumina adapters from https://gist.github.com/photocyte/3edd9401d0b13476e60f8b104c2575f8 and then run in terminal
+
+```{bash,eval=F}
+
+cd data/
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809539.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep4.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809538.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep3.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809537.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep2.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809536.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep1.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809533.fastq Nematostella_vectensis_CH2_12d_POU--_rep1 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809532.fastq Nematostella_vectensis_CH2_12d_POU--_rep2 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809534.fastq Nematostella_vectensis_CH2_12d_POU--_rep3 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809535.fastq Nematostella_vectensis_CH2_12d_POU--_rep4 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
+```
+
+We included the code for all replicates in order to ensure that the file names are correct.We can check data quelity again, using this code in terminal
+
+```{bash,eval=F}
+fastqc -O quality_files/after_trim data/*fastq
+
+```
+
+The html files, will be located in quality_files/after_trim
+
+
+### ChIP-seq data
+We use ChipQC in R
+
+You can install it, using 
+```{r,eval=FALSE}
+BiocManager::install("ChIPQC")
+```
+
+And then, we can run 
+```{r}
+library(ChIPQC)
+sample1 = ChIPQCsample('../data/[]')
+sample2 = ChIPQCsample('../data/[]')
+sample3 = ChIPQCsample('../data/[]')
+
+# Report from sample 1
+ChIPQCreport(sample1)
+# Report from sample 2
+ChIPQCreport(sample2)
+# Report from sample 3
+ChIPQCreport(sample3)
+```
+
+
+
+# GUIDED SEQUENCE ALIGNMENT 
+
+We proceeded to the alignment of the reads with the reference genome using STAR. 
+First, we need the headers to be equal, to achieve this, run in data folder
+```{bash, eval=F}
+sed 's/NEMVE//g' [fasta_file_with_sequences] > Nvectensis.fa
+```
+
+Then we generate the index using the following lines in terminal 
+```{bash, eval=F}
+STAR --runThreadN 6 --runMode genomeGenerate --genomeDir STAR_genome_index --genomeFastaFiles ref_genomes/[Nvectensis.fa] --sjdbGTFfile ref_genomes/[nveGenes.vienna130208.nemVec1.gtf] --sjdbOverhang 99
+```
+
+Once the index was completed, we used each trimmed read and aligned to the reference genome using STAR tools. The following code is an example of the code for replicate 1 of the POU+/- biological sample. 
+
+```{bash,eval=F}
+#@ run for each replicate
+STAR --runThreadN 6 --genomeDir  ref_genomes/ --readFilesIn data/Nematostella_vectensis_CH2_12d_POU-+_wild_rep1.fastq --outFileNamePrefix alignment/Nematostella_vectensis_CH2_12d_POU-+_wild_rep1
+#@ run for each replicate
+```
+
+# RNA-seq
+
+First we must sort and count the alignments made by STAR. For this, we use HTseq and samtools. In terminal, we run 
+
+```{bash, eval=FALSE}
+#@ run for each replicate
+# To compress file to bam
+samtools view -S -b alignment/Nematostella_vectensis_CH2_12d_POU-+_wild_rep1.out.sam > Nvect_POU-+_rep1_Aligned.bam
+# Sort 
+samtools sort Nvect_POU-+_rep1_Aligned.bam -o Nvect_POU-+_rep1_sorted.bam
+# Counts 
+htseq-count -f bam -s yes -r pos Nvect_POU-+_rep1_sorted.bam ../ref_genomes/[nveGenes.vienna130208.nemVec1.gtf] > POU-+_rep1.counts
+#@ run for each replicate
+```
+
+Finally, merge the readings into a single count table. 
+
+
+
+# DATA QUALITY
+
+# SYSTEM INFORMATION
+
+
+The system information used to run this analysis.
+```{r}
+options(width = 120)
+pkgs <- loadedNamespaces()
+pkgs <- installed.packages()[, "Package"]
+sessioninfo::session_info(pkgs)
+```
+
+
+
+
