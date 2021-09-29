@@ -355,21 +355,135 @@ Results can be found in the following table
 |![](../example_images/motif_all_3.png)|1892 (14.54%)| 1.60| -POU4F3 (0.840) <br /> -POU4F1 (0.736)<br /> -POU4F2 (0.842) |4.8e-36|
 
 
+# Differential gene expression in POU-IV target genes. 
+To complement the present analysis, we wanted to know which genes differentially expressed by the POU-IV mutant were found within the reads of the ChIP-seq experiment. That is, whether there were POU-IV target genes (ChIP-seq) that were differentially expressed by the absence of POU-IV in the mutants (RNA-seq). For this purpose, 450 bp were used as promoter regions, 350 bp upstream of the TSS and 100 bp downstream of the TSS. 
+```{r, eval=FALSE}
+library('GenomicFeatures')
+library("GenomicRanges")
+library("AnnotationHub")
+library("rtracklayer")
+
+#Reading annotation files
+anota_data <-  makeTxDbFromGFF(file = '../data/[annotation_file.gtf]', format = "gff3")
+
+#getting promoters
+promoters_genome <- data.frame(promoters(genes(anota_data), upstream = 350, downstream = 100))
+promoters_genome$start[promoters_genome$start<0] <- 0
 
 
 
+#To get the genes
+genes_anotation <- data.frame(genes(anota_data))
+#Write file to bedtools
+write.table(x = genes_anotation,file = '../data/genes.bed',quote = F,sep = '\t',row.names = F,col.names = F)
+write.table(x = promoters_total,file = '../data/promoter.bed',quote = F,sep = '\t',row.names = F,col.names = F)
+
+```
+
+Then, we used bedtools to find intersections in these data
+```{bash,eval=F}
+bedtools intersect -wb -a  MSPC_outdir_1/ConsensusPeaks.bed -b promoter.bed  > peaks_on_promoters.tsv
+bedtools intersect -wb -a  MSPC_outdir_1/ConsensusPeaks.bed -b genes.bed  > peaks_on_genes.tsv
+```
+
+We can read the files in R with 
+```{r}
+#Change the name of the file to peaks_on_promoters.tsv and peaks_on_genes.tsv
+peaks_on_promoters <- read.table(file = '../data/peaks_on_prom_example.tsv', sep = '\t')
+peaks_on_genes <- read.table(file = '../data/peaks_on_gene_example.tsv', sep = '\t')
+```
+
+Then we need to get the genes that have peaks either in promoter region or in the gene body 
+```{r}
+#Promoter regions of genes with peaks 
+#There should not be repeated data
+peaks_on_promoters <- peaks_on_promoters[,c(6,7,8,9,10,11)]
+peaks_on_promoters <- peaks_on_promoters[!duplicated(peaks_on_promoters),]
+
+print('We have 1271 genes with peaks on the promoter region')
+
+#Genes with peaks
+#Should not be duplicated data 
+genes_with_peaks <- peaks_on_genes[,c(6,7,8,9,10,11)]
+genes_with_peaks <- genes_with_peaks[!duplicated(genes_with_peaks),]
+print('We have 3867 genes with peaks on the promoter region')
+```
+
+Finally, we want to know which differentially expressed genes are marked with peaks and in which regions.
+
+```{r}
+library(dplyr)
+###########Peaks on differentially expressed genes ########
+differential_genes_with_peaks_on_genes <-differential_genes[differential_genes$gene%in%genes_with_peaks$V11,]
+
+###########Peaks on promoter ########
+differential_genes_with_peaks_on_promoter <-differential_genes[differential_genes$gene%in%peaks_on_promoters$V11,]
 
 
+#List of all genes
+differential_genes_with_peaks_all <- unique.data.frame(data.frame(rbind(differential_genes_with_peaks_on_promoter,differential_genes_with_peaks_on_genes)))
 
+differential_genes_with_peaks_upregulated <- differential_genes_with_peaks_all[differential_genes_with_peaks_all$fold_change>0,]
 
+differential_genes_with_peaks_downregulated <- differential_genes_with_peaks_all[differential_genes_with_peaks_all$fold_change<0,]
 
+#Differences in the data 
+genes_with_peaks_in_gene_body <- differential_genes_with_peaks_on_genes[!differential_genes_with_peaks_on_genes$gene%in%differential_genes_with_peaks_on_promoter$gene,]
 
+genes_with_peaks_in_promoter_region <- differential_genes_with_peaks_on_promoter[!differential_genes_with_peaks_on_promoter$gene%in%differential_genes_with_peaks_on_genes$gene,]
 
+genes_with_peaks_on_gene_body_and_promoter_region <- differential_genes_with_peaks_on_genes[differential_genes_with_peaks_on_genes$gene%in%differential_genes_with_peaks_on_promoter$gene,]
+```
 
+To graphically observe the results, we use ggven
+```{r, eval=FALSE}
+library(ggvenn)
 
+x <- list(Gene_body = differential_genes_with_peaks_on_genes$gene,Promoters = differential_genes_with_peaks_on_promoter$gene)
+ggvenn(x,
+         fill_color = c("#0073C2FF", "#CD534CFF"),
+  stroke_size = 0.5, set_name_size = 4
+  )+
+ggtitle('Venn diagram of ChIP-seq peaks in regions of \n differentially expressed genes.')
+```
+We should get a figure like this 
+![Venn diagram of ChIP-seq peaks in regions of differentially expressed genes](../example_images/img2.png)
 
+Finally, we used the same approach as in the RNA-seq data to find the GO terms enriched in the data and reduced the dimensions to plot them using the following code
 
+```{r, eval=F}
+#Graphic
+library(rrvgo)
+library(org.Ce.eg.db)
+ddgt <- differential_genes_with_peaks_on_promoter[differential_genes_with_peaks_on_promoter$fold_change<0,]
+gene_enricher <- ddgt$gene
+ggo <- enricher(
+  gene_enricher,
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH",
+  minGSSize = 10,
+  maxGSSize = 500,
+  qvalueCutoff = 0.2,
+  TERM2GENE=GOterms_to_genes,
+  TERM2NAME = GOterms_to_names
+)
 
+ggo_result <- ggo@result
+ggo_result <- ggo_result[ggo_result$p.adjust<0.05,]
+simMatrix <- calculateSimMatrix(ggo_result$ID,
+                                orgdb="org.Ce.eg.db",
+                                ont="BP",
+                                method="Rel")
+
+GO_terms_names <- ggo_result[ggo_result$ID%in%row.names(simMatrix),]
+scores <- setNames(-log10(GO_terms_names$p.adjust), GO_terms_names$ID)
+reducedTerms <- reduceSimMatrix(simMatrix, scores,
+                                orgdb="org.Ce.eg.db", threshold = 0.7)
+treemapPlot(reducedTerms)
+```
+
+We should get the following plot 
+![Treemap of GO terms in differentially expressed genes with peaks on promoter](../example_images/img3.png)
 
 # SYSTEM INFORMATION
 
