@@ -211,6 +211,16 @@ resLFC <- lfcShrink(dds, coef=2, type="apeglm")
 plotMA(resLFC, ylim=c(-4,4))
 ```
 
+In addition, we can perform a principal component analysis on the results using the following. 
+```{r, message=FALSE}
+library(reshape)
+library(SummarizedExperiment)
+vst <- varianceStabilizingTransformation(dds)
+vst@colData@listData[["condition"]] <- c("POU_ko","POU_ko","POU_ko","POU_ko","POU_wt","POU_wt","POU_wt","POU_wt")
+plotPCA(vst, intgroup = "condition")
+```
+
+
 If we want to confirm the numbers from downregulated and upregulated genes with different p values 
 ```{r}
 #Para 0.05
@@ -411,7 +421,7 @@ print('We have 3867 genes with peaks on the promoter region')
 
 Finally, we want to know which differentially expressed genes are marked with peaks and in which regions.
 
-```{r}
+```{r,warning=FALSE}
 library(dplyr)
 ###########Peaks on differentially expressed genes ########
 differential_genes_with_peaks_on_genes <-differential_genes[differential_genes$gene%in%genes_with_peaks$V11,]
