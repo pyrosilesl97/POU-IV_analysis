@@ -162,6 +162,7 @@ STAR --runThreadN 6 --genomeDir  ref_genomes/ --readFilesIn data/Nematostella_ve
 First we must sort and count the alignments made by STAR. For this, we use HTseq and samtools. In terminal, we run 
 
 ```{bash, eval=FALSE}
+cd alignment
 #@ run for each replicate
 # To compress file to bam
 samtools view -S -b alignment/Nematostella_vectensis_CH2_12d_POU-+_wild_rep1.out.sam > Nvect_POU-+_rep1_Aligned.bam
@@ -173,15 +174,154 @@ htseq-count -f bam -s yes -r pos Nvect_POU-+_rep1_sorted.bam ../ref_genomes/[nve
 ```
 
 Finally, merge the readings into a single count table. 
+```{bash,eval=FALSE}
+cd alignment
+paste POU--_rep*.counts POU-+_rep*.counts > counts_table_DGE.txt
+```
+
+I then used R to load the data. First, I read the DGE results
+```{r, message=FALSE, warning=FALSE}
+library(DESeq2)
+library(apeglm)
+#Read data
+data.dge <- read.delim(file = '../alignment/counts_table_DGE.txt',sep = '\t', header = F, row.names = 1)
+#Assign names
+condition <- factor(c("POU_ko","POU_ko","POU_ko","POU_ko","POU_wt","POU_wt","POU_wt","POU_wt"), levels = c('POU_wt','POU_ko'))
+colData <- data.frame(row.names=colnames(data.dge), condition)
+
+dds <- DESeqDataSetFromMatrix(countData = data.dge,
+                              colData = colData,
+                              design = ~ condition )
+
+#Erase data with no counts
+dds <- dds[ rowSums(counts(dds)) > 1, ]
+dds <- DESeq(dds)
+res <- results(dds)
+
+#You can preprocces all again, and you should get this figure 
+resLFC <- lfcShrink(dds, coef=2, type="apeglm")
+plotMA(resLFC, ylim=c(-4,4))
+```
+
+If we want to confirm the numbers from downregulated and upregulated genes with different p values 
+```{r}
+#Para 0.05
+nrow(data.frame(resLFC@rownames[resLFC@listData[["pvalue"]] <0.05]))
+#Para 0.01
+nrow(data.frame(resLFC@rownames[resLFC@listData[["pvalue"]] <0.01]))
+```
+
+Then, to list the downregulated and upregulated genes 
+```{r}
+#Keep only p-value<0.01
+differential_genes <- data.frame(resLFC@rownames[resLFC@listData[["pvalue"]] <0.01])
+#Add column name
+colnames(differential_genes) <- c('gene')
+#Add Fold change
+differential_genes$fold_change <- resLFC@listData[["log2FoldChange"]][resLFC@listData[["pvalue"]] <0.01]
+#Add base mean
+differential_genes$mean_counts <- resLFC@listData[["baseMean"]][resLFC@listData[["pvalue"]] <0.01]
+#Add p value
+differential_genes$pvalue <- resLFC@listData[["pvalue"]][resLFC@listData[["pvalue"]] <0.01]
+# Eliminate empty rows
+differential_genes <- differential_genes[complete.cases(differential_genes),]
+```
+
+From the annotation data we previously downloaded, we have nveGenes.vienna130208.GO_annotation_141017.txt which listed the genes with its GO terms. It is usefull to read this in R. Also, it is useful to have the p-values of the DGE in this dataframe because they can be used as scores for Gene ontology enrichment. 
+```{r,eval=FALSE}
+#Read file
+GO_terms <- read.delim(file = '../data/nveGenes.vienna130208.GO_annotation_141017.txt',sep = '\t', header = F)
+# Extract those that are differentially expressed
+GO_terms_differential_expressed <- GO_terms[GO_terms$V1%in%differential_genes$gene, ]
+#Quiero tener los valores de p, guardados en differential_genes$pvalue en el df de GO
+for(j in 1:nrow(GO_terms_differential_expressed)) {
+  for(k in 1:nrow(differential_genes)) {
+     if (GO_terms_differential_expressed$V1[j] == differential_genes$gene[k]) {
+         GO_terms_differential_expressed$pvalue[j] <- differential_genes$pvalue[k]
+     }
+    k <- k+1
+  }
+  j<- j+1
+  }
+```
+
+Now that we have these data loaded, more data were loaded into the dataframe for the differentially expressed genes. For example, the JGI_ID, for this the equivalence_table.txt file in the data folder is used. This file was generated using bedtools intersect on the JGI genomic annotation and the one used in the present analysis. 
+
+```{r}
+#reading table
+equival <- read.delim(file = '../data/equivalence_table.tsv',sep = '\t', header = F)
+###Loop for extracting data 
+differential_genes$JGI_ID <- 'No data'
+j <-1
+k<-1
+
+for(j in 1:nrow(differential_genes)) {
+  for(k in 1:nrow(equival)) {
+     if (differential_genes$gene[j] == equival$V1[k]) {
+         differential_genes$JGI_ID[j] <- equival$V3[k]
+     }
+    k <- k+1
+  }
+  j<- j+1
+}
 
 
+upregulated_genes <- differential_genes[differential_genes$fold_change>0,]
+downregulated_genes <- differential_genes[differential_genes$fold_change<0,]
+```
 
-# DATA QUALITY
+
+Now that I have this data, I can perform a GO enrichment analysis. 
+
+```{r,eval=FALSE}
+library(rrvgo)
+library(org.Ce.eg.db) #C. elegans data as reference 
+library(clusterProfiler)
+#We need some dfs to do the job 
+
+#Getting terms to gene dataframe
+GOterms_to_genes <- GOterms_to_genes[,c(3,1)]
+colnames(GOterms_to_genes) <- c('term','gene')
+#Getting term to name df
+GOterms_to_names <- GOterms_to_names[,c(3,4)]
+colnames(GOterms_to_names) <- c('term','name')
+
+#GO enrichment for downregulated genes
+ggo <- enricher(
+  downregulated_genes$gene,
+  pvalueCutoff = 0.05,
+  pAdjustMethod = "BH",
+  TERM2GENE=GOterms_to_genes,
+  TERM2NAME = GOterms_to_names
+)
+
+#GO enrichment result
+ggo_result <- ggo@result
+#Filtering GO enrichment result
+ggo_result <- ggo_result[ggo_result$p.adjust<0.05,]
+
+#Generating matrix to plot
+simMatrix <- calculateSimMatrix(ggo_result$ID,
+                                orgdb="org.Ce.eg.db",
+                                ont="BP",
+                                method="Rel")
+
+GO_terms_names <- ggo_result[ggo_result$ID%in%row.names(simMatrix),]
+scores <- setNames(-log10(GO_terms_names$p.adjust), GO_terms_names$ID)
+#Reducing dimensions to plot
+reducedTerms <- reduceSimMatrix(simMatrix, scores,
+                                orgdb="org.Ce.eg.db", threshold = 0.8)
+treemapPlot(reducedTerms)
+```
+
+Using the above code, we should produce a figure like the following one 
+
+![TreeMap of representative GO terms in downregulated genes](../example_images/img1.png)
 
 # SYSTEM INFORMATION
 
-
 The system information used to run this analysis.
+
 ```{r}
 options(width = 120)
 pkgs <- loadedNamespaces()
