@@ -1,3 +1,27 @@
+#MIT License
+
+#Copyright (c) 2021 Pablo Yamild Rosiles Loeza
+
+#Permission is hereby granted, free of charge, to any person obtaining a copy
+#of this software and associated documentation files (the "Software"), to deal
+#in the Software without restriction, including without limitation the rights
+#to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+#copies of the Software, and to permit persons to whom the Software is
+#furnished to do so, subject to the following conditions:
+
+ # The above copyright notice and this permission notice shall be included in all
+#copies or substantial portions of the Software.
+
+#THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+#IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+#FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+#AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+#LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+#OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+#SOFTWARE.
+
+
+
 ## wget ftp://ftp.ensemblgenomes.org/pub/metazoa/release-51/fasta/nematostella_vectensis/dna/Nematostella_vectensis.ASM20922v1.dna.toplevel.fa.gz
 
 
@@ -18,7 +42,7 @@
 
 ## wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/005/ERR3809535/ERR3809535.fastq.gz
 
-## 
+##
 ## # POU wild type data
 
 ## wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/006/ERR3809536/ERR3809536.fastq.gz
@@ -29,7 +53,7 @@
 
 ## wget ftp://ftp.sra.ebi.ac.uk/vol1/fastq/ERR380/009/ERR3809539/ERR3809539.fastq.gz
 
-## 
+##
 
 ## gzip *.fastq.gz
 
@@ -43,9 +67,9 @@
 
 ## fastqc -O quality_files/before_trim data/*fastq
 
-## 
+##
 
-## 
+##
 ## cd data/
 
 ## java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809539.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep4.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
@@ -56,7 +80,7 @@
 
 ## java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809536.fastq Nematostella_vectensis_CH2_12d_POU-+_wild_rep1.fastq ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
 
-## 
+##
 ## java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809533.fastq Nematostella_vectensis_CH2_12d_POU--_rep1 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
 
 ## java -jar [#PATH_TO_TRIMMOMATIC_JAVA_FILE]/trimmomatic-0.32.jar SE -threads 4 before_trim/ERR3809532.fastq Nematostella_vectensis_CH2_12d_POU--_rep2 ILLUMINACLIP:Sequencing_adaptors.fasta:2:30:10 SLIDINGWINDOW:4:15 MINLEN:60 HEADCROP:10
@@ -68,7 +92,7 @@
 
 ## fastqc -O quality_files/after_trim data/*fastq
 
-## 
+##
 
 ## #$
 
@@ -86,7 +110,7 @@
 ## sample1 = ChIPQCsample('../data/[ChIPseq_rep1]')
 ## sample2 = ChIPQCsample('../data/[ChIPseq_rep2]')
 ## sample3 = ChIPQCsample('../data/[ChIPseq_rep3]')
-## 
+##
 ## # Report from sample 1
 ## ChIPQCreport(sample1)
 ## # Report from sample 2
@@ -150,7 +174,7 @@ dds <- dds[ rowSums(counts(dds)) > 1, ]
 dds <- DESeq(dds)
 res <- results(dds)
 
-#You can preprocces all again, and you should get this figure 
+#You can preprocces all again, and you should get this figure
 resLFC <- lfcShrink(dds, coef=2, type="apeglm")
 plotMA(resLFC, ylim=c(-4,4))
 
@@ -205,7 +229,7 @@ differential_genes <- differential_genes[complete.cases(differential_genes),]
 ## -----------------------------------------------------------------------------------------------
 #reading table
 equival <- read.delim(file = '../data/equivalence_table.tsv',sep = '\t', header = F)
-###Loop for extracting data 
+###Loop for extracting data
 differential_genes$JGI_ID <- 'No data'
 j <-1
 k<-1
@@ -230,14 +254,14 @@ downregulated_genes <- differential_genes[differential_genes$fold_change<0,]
 ## library(org.Ce.eg.db) #C. elegans data as reference
 ## library(clusterProfiler)
 ## #We need some dfs to do the job
-## 
+##
 ## #Getting terms to gene dataframe
 ## GOterms_to_genes <- GOterms_to_genes[,c(3,1)]
 ## colnames(GOterms_to_genes) <- c('term','gene')
 ## #Getting term to name df
 ## GOterms_to_names <- GOterms_to_names[,c(3,4)]
 ## colnames(GOterms_to_names) <- c('term','name')
-## 
+##
 ## #GO enrichment for downregulated genes
 ## ggo <- enricher(
 ##   downregulated_genes$gene,
@@ -246,18 +270,18 @@ downregulated_genes <- differential_genes[differential_genes$fold_change<0,]
 ##   TERM2GENE=GOterms_to_genes,
 ##   TERM2NAME = GOterms_to_names
 ## )
-## 
+##
 ## #GO enrichment result
 ## ggo_result <- ggo@result
 ## #Filtering GO enrichment result
 ## ggo_result <- ggo_result[ggo_result$p.adjust<0.05,]
-## 
+##
 ## #Generating matrix to plot
 ## simMatrix <- calculateSimMatrix(ggo_result$ID,
 ##                                 orgdb="org.Ce.eg.db",
 ##                                 ont="BP",
 ##                                 method="Rel")
-## 
+##
 ## GO_terms_names <- ggo_result[ggo_result$ID%in%row.names(simMatrix),]
 ## scores <- setNames(-log10(GO_terms_names$p.adjust), GO_terms_names$ID)
 ## #Reducing dimensions to plot
@@ -282,22 +306,22 @@ downregulated_genes <- differential_genes[differential_genes$fold_change<0,]
 ## library("GenomicRanges")
 ## library("AnnotationHub")
 ## library("rtracklayer")
-## 
+##
 ## #Reading annotation files
 ## anota_data <-  makeTxDbFromGFF(file = '../data/[annotation_file.gtf]', format = "gff3")
-## 
+##
 ## #getting promoters
 ## promoters_genome <- data.frame(promoters(genes(anota_data), upstream = 350, downstream = 100))
 ## promoters_genome$start[promoters_genome$start<0] <- 0
-## 
-## 
-## 
+##
+##
+##
 ## #To get the genes
 ## genes_anotation <- data.frame(genes(anota_data))
 ## #Write file to bedtools
 ## write.table(x = genes_anotation,file = '../data/genes.bed',quote = F,sep = '\t',row.names = F,col.names = F)
 ## write.table(x = promoters_total,file = '../data/promoter.bed',quote = F,sep = '\t',row.names = F,col.names = F)
-## 
+##
 
 
 ## bedtools intersect -wb -a  MSPC_outdir_1/ConsensusPeaks.bed -b promoter.bed  > peaks_on_promoters.tsv
@@ -312,7 +336,7 @@ peaks_on_genes <- read.table(file = '../data/peaks_on_gene_example.tsv', sep = '
 
 
 ## -----------------------------------------------------------------------------------------------
-#Promoter regions of genes with peaks 
+#Promoter regions of genes with peaks
 #There should not be repeated data
 peaks_on_promoters <- peaks_on_promoters[,c(6,7,8,9,10,11)]
 peaks_on_promoters <- peaks_on_promoters[!duplicated(peaks_on_promoters),]
@@ -320,7 +344,7 @@ peaks_on_promoters <- peaks_on_promoters[!duplicated(peaks_on_promoters),]
 print('We have 1271 genes with peaks on the promoter region')
 
 #Genes with peaks
-#Should not be duplicated data 
+#Should not be duplicated data
 genes_with_peaks <- peaks_on_genes[,c(6,7,8,9,10,11)]
 genes_with_peaks <- genes_with_peaks[!duplicated(genes_with_peaks),]
 print('We have 3867 genes with peaks on the promoter region')
@@ -342,7 +366,7 @@ differential_genes_with_peaks_upregulated <- differential_genes_with_peaks_all[d
 
 differential_genes_with_peaks_downregulated <- differential_genes_with_peaks_all[differential_genes_with_peaks_all$fold_change<0,]
 
-#Differences in the data 
+#Differences in the data
 genes_with_peaks_in_gene_body <- differential_genes_with_peaks_on_genes[!differential_genes_with_peaks_on_genes$gene%in%differential_genes_with_peaks_on_promoter$gene,]
 
 genes_with_peaks_in_promoter_region <- differential_genes_with_peaks_on_promoter[!differential_genes_with_peaks_on_promoter$gene%in%differential_genes_with_peaks_on_genes$gene,]
@@ -352,7 +376,7 @@ genes_with_peaks_on_gene_body_and_promoter_region <- differential_genes_with_pea
 
 ## ---- eval=FALSE--------------------------------------------------------------------------------
 ## library(ggvenn)
-## 
+##
 ## x <- list(Gene_body = differential_genes_with_peaks_on_genes$gene,Promoters = differential_genes_with_peaks_on_promoter$gene)
 ## ggvenn(x,
 ##          fill_color = c("#0073C2FF", "#CD534CFF"),
@@ -377,14 +401,14 @@ genes_with_peaks_on_gene_body_and_promoter_region <- differential_genes_with_pea
 ##   TERM2GENE=GOterms_to_genes,
 ##   TERM2NAME = GOterms_to_names
 ## )
-## 
+##
 ## ggo_result <- ggo@result
 ## ggo_result <- ggo_result[ggo_result$p.adjust<0.05,]
 ## simMatrix <- calculateSimMatrix(ggo_result$ID,
 ##                                 orgdb="org.Ce.eg.db",
 ##                                 ont="BP",
 ##                                 method="Rel")
-## 
+##
 ## GO_terms_names <- ggo_result[ggo_result$ID%in%row.names(simMatrix),]
 ## scores <- setNames(-log10(GO_terms_names$p.adjust), GO_terms_names$ID)
 ## reducedTerms <- reduceSimMatrix(simMatrix, scores,
